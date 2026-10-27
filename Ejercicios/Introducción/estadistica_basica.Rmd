@@ -1,0 +1,118 @@
+---
+title: "Estadística básica en R"
+date: "`r format(Sys.Date(), '%d/%m/%Y')`"
+output:
+  html_document:
+    toc: true
+    toc_depth: 2
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE, fig.align = "center")
+library(readxl)
+```
+
+
+# 1. Carga de archivos
+
+```{r carga}
+
+# Seleccionar la carpeta en que se encuentran los archivos. En mac utilizar / Mientras que en windows utilizar \
+
+setwd ("/Users/jorge/Documents/Berkley/Catalyst grant/Materiales/data_set")
+
+# Cargar el   archivo cambiando el nombre de ser necesario. Si el archivo está en formato xlsx, utilizar read_xlsx(nombre_del_archivo.xlsx)
+
+datos <- read.csv("datos_estudiantes.csv", stringsAsFactors = FALSE)
+
+
+```
+
+
+# 2. Media de las horas de estudio
+
+La **media** suma todos los valores y los divide por el número de observaciones:
+
+$$\bar{x} = \frac{1}{n}\sum_{i=1}^{n} x_i$$
+
+```{r media}
+# Para calcular la media utilizamos la función mean. Entre paréntesis, señalamos (nombre de la matriz$nombre de la columna). Por ejemplo, mean (datos$horas_estudio_sem)
+media_horas <- mean(datos$horas_estudio_sem)
+media_horas
+
+# Calcular la media de notas
+
+```
+
+En promedio, los estudiantes estudian **`r round(media_horas, 2)` horas a la semana**.
+
+# 3. Desviación estándar
+
+La **desviación estándar** ($s$) mide qué tan lejos están, en promedio, las observaciones respecto a su media:
+
+$$s = \sqrt{\frac{1}{n-1}\sum_{i=1}^{n}(x_i-\bar{x})^2}$$
+
+```{r desv-estandar}
+# La desviación estándar se calcula con el comando sd (nombre de la matriz $ nombre de la columna)
+
+desv_horas <- sd(datos$horas_estudio_sem)
+
+desv_horas
+
+# Calcular desviación estándar de las notas
+
+```
+
+# 4. Error estándar
+
+El **error estándar** de la media indica qué tan precisa es la media de la muestra como estimación de la media de la población:
+
+$$EE(\bar{x}) = \frac{s}{\sqrt{n}}$$
+
+```{r error-estandar}
+# El error estándar se calcula dividiendo el valor de la desviación estándar  para la raíz cuadrada del número de observaciones
+
+# Para calcular el número de observaciones n
+n          <- length(datos$horas_estudio_sem)
+# Para calcular la desviación estándar
+desv_horas <- sd(datos$horas_estudio_sem)
+# Para calcular el error estándar
+ee_horas   <- desv_horas / sqrt(n)
+ee_horas
+```
+
+La desviación estándar (`r round(desv_horas, 2)`) describe qué tan dispersos están los **datos individuales**. El error estándar (`r round(ee_horas, 3)`) describe qué tan precisa es la **media**. Con `r n` estudiantes, la media de horas de estudio tiene muy poco margen de error.
+
+
+# 5. Regresión lineal
+
+Se estima cuánto cambia la nota (`nota`) por cada hora adicional de estudio semanal (`horas_estudio_sem`):
+
+$$\text{puntaje}_i = \beta_0 + \beta_1 \, \text{horas}_i + \varepsilon_i$$
+
+```{r regresion}
+#Se calcula con la función ln (nombre de columna con variable y ~ nombre de la columna variable x, data = nombre de los datos)
+modelo <- lm(notas ~ horas_estudio_sem, data = datos)
+summary(modelo)
+
+```
+
+```{r grafico-regresion}
+#generar un gráfico de la regresión
+plot(datos$horas_estudio_sem, datos$notas,
+     xlab = "Horas de estudio a la semana",
+     ylab = "Puntaje",
+     pch = 16, col = rgb(0.07, 0.58, 0.56, 0.35))
+abline(modelo, col = "#1F3A5F", lwd = 2)
+
+
+
+```
+
+
+# 6. Prueba t de la regresión
+
+Cada coeficiente de la regresión tiene su propio error estándar y su propia prueba t. Para la pendiente, la hipótesis nula es que las horas de estudio **no** se asocian con el puntaje:
+
+$$H_0:\ \beta_1 = 0 \qquad\qquad t = \frac{\hat{\beta}_1}{EE(\hat{\beta}_1)}$$
+
