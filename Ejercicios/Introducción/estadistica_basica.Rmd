@@ -23,7 +23,7 @@ setwd ("/Users/jorge/Documents/Berkley/Catalyst grant/Materiales/data_set")
 
 # Cargar el   archivo cambiando el nombre de ser necesario. Si el archivo está en formato xlsx, utilizar read_xlsx(nombre_del_archivo.xlsx)
 
-datos <- read.csv("datos_estudiantes.csv", stringsAsFactors = FALSE)
+datos <- read.csv("df_estudiantes.csv", stringsAsFactors = FALSE)
 
 
 ```
