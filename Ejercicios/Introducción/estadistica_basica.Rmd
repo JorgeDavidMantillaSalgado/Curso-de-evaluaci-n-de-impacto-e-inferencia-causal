@@ -26,6 +26,7 @@ setwd ("/Users/jorge/Documents/Berkley/Catalyst grant/Materiales/data_set")
 datos <- read.csv("df_estudiantes.csv", stringsAsFactors = FALSE)
 
 
+
 ```
 
 
@@ -61,6 +62,7 @@ desv_horas
 
 # Calcular desviación estándar de las notas
 
+
 ```
 
 # 4. Error estándar
@@ -79,10 +81,36 @@ desv_horas <- sd(datos$horas_estudio_sem)
 # Para calcular el error estándar
 ee_horas   <- desv_horas / sqrt(n)
 ee_horas
+
+
 ```
 
 La desviación estándar (`r round(desv_horas, 2)`) describe qué tan dispersos están los **datos individuales**. El error estándar (`r round(ee_horas, 3)`) describe qué tan precisa es la **media**. Con `r n` estudiantes, la media de horas de estudio tiene muy poco margen de error.
 
+
+# 5. Comparación de notas entre hombres y mujeres (prueba t)
+
+La **prueba t** divide la diferencia entre las dos medias para el error estándar de esa diferencia:
+
+$$t = \frac{\bar{Y}_{M} - \bar{Y}_{H}}{EE}$$
+
+donde $EE$ es el error estándar de la diferencia entre las medias.
+
+
+- $H_0$: no existen diferencias entre las medias de notas de hombres y mujeres en la población.
+- $H_1$: existen diferencias entre las medias en la población.
+
+```{r prueba-t}
+
+# Prueba t para comparar las notas según sexo (variable ~ grupo)
+prueba_t <- t.test(notas ~ sexo, data = datos)
+prueba_t
+
+```
+
+Las mujeres tienen una nota promedio de **`r round(media_m, 2)`** y los hombres de **`r round(media_h, 2)`**, una diferencia de **`r round(diferencia, 2)` puntos**. El valor t es **`r round(t_manual, 2)`** y el valor p es **`r signif(prueba_t$p.value, 3)`**.
+
+Si $|t| > 1.96$ (equivalente a $p < 0.05$), se rechaza la hipótesis nula: la diferencia es estadísticamente significativa. Si no, se falla en rechazar la hipótesis nula.
 
 # 5. Regresión lineal
 
