@@ -1,0 +1,175 @@
+---
+title: "Ejercicio evaluación de un RCT"
+author: "Jorge Mantilla"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    number_sections: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+```
+
+# Caso de estudio
+
+**Puentes Laborales** es un programa (ficticio) implementado por una organización de cooperación en ciudades de la Sierra norte del Ecuador. Está dirigido a personas migrantes adultas que llegaron al país en los últimos años y que trabajan principalmente en la economía informal.
+
+El programa ofrece, durante tres meses:
+
+- un curso de formación técnica corta (gastronomía, atención al cliente, oficios),
+- acompañamiento para la certificación de competencias, y
+- vinculación con empleadores locales.
+
+Como había más personas interesadas (400) que cupos disponibles (200), los cupos se asignaron **por sorteo**. Esto convierte la implementación en un **ensayo controlado aleatorizado (RCT)**:
+
+- **Grupo de tratamiento** (`tratamiento = 1`): 200 personas que recibieron el programa.
+- **Grupo de control** (`tratamiento = 0`): 200 personas que no lo recibieron.
+
+**Pregunta de evaluación:** ¿Cuál es el efecto del programa sobre el ingreso mensual de las personas participantes seis meses después de iniciado?
+
+> **Nota:** los datos son simulados con fines didácticos.
+
+## Diccionario de variables
+
+| Variable | Descripción | Momento |
+|---|---|---|
+| `id` | Identificador de la persona | — |
+| `tratamiento` | 1 = asignada al programa; 0 = grupo de control | Sorteo |
+| `edad` | Edad en años | Línea de base |
+| `mujer` | 1 = mujer; 0 = hombre | Línea de base |
+| `anios_educacion` | Años de escolaridad aprobados | Línea de base |
+| `meses_en_ecuador` | Meses de residencia en Ecuador | Línea de base |
+| `num_hijos` | Número de hijos/as | Línea de base |
+| `ingreso_base` | Ingreso mensual (USD) antes del programa | Línea de base |
+| `ingreso_final` | Ingreso mensual (USD) seis meses después | Seguimiento (**Y**) |
+
+En este ejercicio, la variable **X** es `tratamiento` y la variable **Y** es `ingreso_final`.
+
+# Preparación
+
+**Instrucción:** Coloque el archivo `rct_migracion_empleo.csv` en la misma carpeta que este documento. Luego ejecute el bloque.
+
+```{r cargar-datos}
+# Cargamos la base de datos
+setwd("/Users/jorge/Documents/Curso-de-evaluaci-n-de-impacto-e-inferencia-causal/Ejercicios/RCT")
+datos <- read.csv("EjercicioRCT.csv")
+
+# Revisamos las primeras filas y la estructura
+head(datos)
+str(datos)
+
+# ¿Cuántas personas hay en cada grupo?
+table(datos$tratamiento)
+```
+
+
+# Paso 1: Comprobación de balance (pruebas t)
+
+## ¿Por qué comprobar el balance?
+
+La aleatorización busca que ambos grupos sean, **en promedio, iguales antes del programa**. Si eso se cumple, cualquier diferencia posterior en `ingreso_final` puede atribuirse al programa y no a diferencias previas entre las personas.
+
+Para comprobarlo comparamos las medias de las variables de **línea de base** entre tratamiento y control con una prueba t:
+
+- **H0:** la media es igual en ambos grupos.
+- Si el **p-valor > 0.05**, fallamos en rechazar H0 → los grupos están **balanceados** en esa variable.
+
+> **Importante:** el balance se comprueba solo con variables medidas *antes* de la intervención. Nunca con la variable de resultado final.
+
+## Prueba t para una variable
+
+Empecemos con la edad.
+
+```{r ttest-edad}
+t.test(edad ~ tratamiento, data = datos)
+```
+
+**Instrucción:** Identifique en la salida (a) la media de cada grupo, (b) el estadístico t y (c) el p-valor.
+
+## Prueba t para todas las variables de línea de base
+
+Repetir la prueba una por una es poco práctico. El siguiente código la aplica a todas las variables y resume los resultados en una tabla.
+
+```{r tabla-balance}
+# Lista de variables de línea de base
+vars_base <- c("edad", "mujer", "anios_educacion",
+               "meses_en_ecuador", "num_hijos", "ingreso_base")
+
+# Aplicamos la prueba t a cada variable
+balance <- lapply(vars_base, function(v) {
+  prueba <- t.test(datos[[v]] ~ datos$tratamiento)
+  data.frame(
+    variable       = v,
+    media_control  = round(prueba$estimate[1], 2),
+    media_trat     = round(prueba$estimate[2], 2),
+    diferencia     = round(prueba$estimate[2] - prueba$estimate[1], 2),
+    p_valor        = round(prueba$p.value, 3)
+  )
+})
+
+tabla_balance <- do.call(rbind, balance)
+rownames(tabla_balance) <- NULL
+knitr::kable(tabla_balance,
+             caption = "Tabla de balance: medias por grupo y pruebas t")
+```
+
+**Pregunta 1:** ¿Hay alguna variable con p-valor menor a 0.05? ¿Qué concluye sobre la aleatorización?
+
+
+# Paso 2: Estimación del efecto del programa (regresión)
+
+## Comparación simple de medias
+
+Primero miremos el ingreso final promedio en cada grupo.
+
+```{r medias-y}
+aggregate(ingreso_final ~ tratamiento, data = datos, FUN = mean)
+
+boxplot(ingreso_final ~ tratamiento, data = datos,
+        names = c("Control", "Tratamiento"),
+        col = c("grey80", "steelblue"),
+        ylab = "Ingreso mensual (USD)",
+        main = "Ingreso a los 6 meses por grupo")
+```
+
+## Modelo 1: regresión simple
+
+En un RCT, el efecto del programa se estima con:
+
+$$ Y_i = \beta_0 + \beta_1 \, Tratamiento_i + \varepsilon_i $$
+
+- $\beta_0$: ingreso promedio del grupo de control.
+- $\beta_1$: **efecto promedio del tratamiento (ATE)**, es decir, la diferencia de medias entre grupos.
+
+```{r modelo-simple}
+modelo1 <- lm(ingreso_final ~ tratamiento, data = datos)
+summary(modelo1)
+```
+
+**Pregunta 2:** Interprete el coeficiente de `tratamiento`. ¿En cuántos dólares cambia el ingreso por participar en el programa? ¿Es estadísticamente significativo?
+
+
+## Modelo 2: regresión con covariables
+
+Agregar variables de línea de base **no cambia lo que se estima** (el efecto sigue siendo causal gracias al sorteo), pero suele **mejorar la precisión**, es decir, reduce el error estándar.
+
+$$ Y_i = \beta_0 + \beta_1 \, Tratamiento_i + \gamma \, X_i^{base} + \varepsilon_i $$
+
+```{r modelo-covariables}
+modelo2 <- lm(ingreso_final ~ tratamiento + edad + mujer + anios_educacion +
+                meses_en_ecuador + num_hijos + ingreso_base,
+              data = datos)
+summary(modelo2)
+```
+
+
+# Conclusión
+
+**Instrucción final:** Redacte un párrafo breve (5–6 líneas) dirigido a la organización que implementa *Puentes Laborales*, respondiendo:
+
+1. ¿Los grupos eran comparables antes del programa?
+2. ¿Cuál fue el efecto del programa sobre el ingreso mensual y qué tan preciso es?
+3. ¿Qué limitaciones o preguntas adicionales tendría antes de recomendar ampliar el programa? (p. ej., deserción, cumplimiento, efectos en otros resultados, validez externa)

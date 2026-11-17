@@ -25,8 +25,6 @@ setwd ("/Users/jorge/Documents/Berkley/Catalyst grant/Materiales/data_set")
 
 datos <- read.csv("df_estudiantes.csv", stringsAsFactors = FALSE)
 
-
-
 ```
 
 
@@ -43,6 +41,8 @@ media_horas
 
 # Calcular la media de notas
 
+medias_notas <- mean(datos$notas)
+medias_notas
 ```
 
 En promedio, los estudiantes estudian **`r round(media_horas, 2)` horas a la semana**.
