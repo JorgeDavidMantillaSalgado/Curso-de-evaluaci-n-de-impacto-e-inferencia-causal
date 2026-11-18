@@ -50,7 +50,7 @@ En este ejercicio, la variable **X** es `tratamiento` y la variable **Y** es `in
 
 # Preparación
 
-**Instrucción:** Coloque el archivo `rct_migracion_empleo.csv` en la misma carpeta que este documento. Luego ejecute el bloque.
+**Instrucción:** Coloque el archivo `EjercicioRCT.csv` en la misma carpeta que este documento. Luego ejecute el bloque.
 
 ```{r cargar-datos}
 # Cargamos la base de datos
@@ -92,11 +92,10 @@ Empecemos con la edad.
 t.test(edad ~ tratamiento, data = datos)
 ```
 
-**Instrucción:** Identifique en la salida (a) la media de cada grupo, (b) el estadístico t y (c) el p-valor.
 
-## Prueba t para todas las variables de línea de base
+## Prueba t para todas las variables 
 
-Repetir la prueba una por una es poco práctico. El siguiente código la aplica a todas las variables y resume los resultados en una tabla.
+El siguiente código la aplica a todas las variables y resume los resultados en una tabla.
 
 ```{r tabla-balance}
 # Lista de variables de línea de base
@@ -128,7 +127,6 @@ knitr::kable(tabla_balance,
 
 ## Comparación simple de medias
 
-Primero miremos el ingreso final promedio en cada grupo.
 
 ```{r medias-y}
 aggregate(ingreso_final ~ tratamiento, data = datos, FUN = mean)
@@ -144,9 +142,9 @@ boxplot(ingreso_final ~ tratamiento, data = datos,
 
 En un RCT, el efecto del programa se estima con:
 
-$$ Y_i = \beta_0 + \beta_1 \, Tratamiento_i + \varepsilon_i $$
+$$ Y_i = \alpha + \beta_1 \, Tratamiento_i + \varepsilon_i $$
 
-- $\beta_0$: ingreso promedio del grupo de control.
+- $\alpha$: ingreso promedio del grupo de control.
 - $\beta_1$: **efecto promedio del tratamiento (ATE)**, es decir, la diferencia de medias entre grupos.
 
 ```{r modelo-simple}
@@ -161,7 +159,7 @@ summary(modelo1)
 
 Agregar variables de línea de base **no cambia lo que se estima** (el efecto sigue siendo causal gracias al sorteo), pero suele **mejorar la precisión**, es decir, reduce el error estándar.
 
-$$ Y_i = \beta_0 + \beta_1 \, Tratamiento_i + \gamma \, X_i^{base} + \varepsilon_i $$
+$$ Y_i = \alpha + \beta_1 \, Tratamiento_i + \gamma \, X_i^{base} + \varepsilon_i $$
 
 ```{r modelo-covariables}
 modelo2 <- lm(ingreso_final ~ tratamiento + edad + mujer + anios_educacion +
